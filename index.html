@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Geoportal Sierra Azul</title>
+
+  <!-- FAVICON -->
+  <link rel="icon" type="image/jpeg" href="favicon/logo_sierra_azul.jpg">
+
+  <!-- LEAFLET -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      font-family: Arial, sans-serif;
+    }
+
+    #container {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    #left-panel {
+      width: 300px;
+      background: #f4f6f8;
+      padding: 14px;
+      border-right: 1px solid #ccc;
+    }
+
+    #map {
+      flex: 1;
+    }
+
+    #right-panel {
+      width: 320px;
+      background: #f4f6f8;
+      padding: 14px;
+      border-left: 1px solid #ccc;
+    }
+
+    h2 {
+      font-size: 16px;
+      color: #1b5e20;
+      margin: 0 0 6px 0;
+    }
+
+    .group {
+      background: #fff;
+      padding: 10px;
+      margin-bottom: 14px;
+      border: 1px solid #ddd;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="container">
+
+  <!-- PANEL IZQUIERDO -->
+  <div id="left-panel">
+    <h2>Proyecto de Inversión de Optimización<br>
+        de la Siembra y Cosecha de Agua</h2>
+    <p><strong>OPPS</strong><br>
+       Oficina de Planeamiento, Presupuesto y Seguimiento</p>
+
+    <h3>Ubicación</h3>
+
+    <label>Departamento</label>
+    <select><option>-- Seleccione --</option></select>
+
+    <label>Provincia</label>
+    <select><option>-- Seleccione --</option></select>
+
+    <label>Distrito</label>
+    <select><option>-- Seleccione --</option></select>
+
+    <p style="font-size:11px;color:#666;">
+      * La información se carga solo cuando el usuario selecciona.
+    </p>
+  </div>
+
+  <!-- MAPA -->
+  <div id="map"></div>
+
+  <!-- PANEL DERECHO -->
+  <div id="right-panel">
+
+    <div class="group">
+      <h4>Mapas base</h4>
+      <label><input type="radio" name="basemap" id="osm" checked> Topográfico</label>
+      <label><input type="radio" name="basemap" id="imagery"> Imagery</label>
+      <label><input type="radio" name="basemap" id="gray"> Sombra</label>
+    </div>
+
+    <div class="group">
+      <h4>SERNANP</h4>
+      <label>
+        <input type="checkbox" id="chkANP"> ANP
+      </label>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+  // =========================
+  // MAPAS BASE
+  // =========================
+  const osm = L.tileLayer(
+    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    { attribution: '© OpenStreetMap' }
+  );
+
+  const imagery = L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    { attribution: '© Esri' }
+  );
+
+  const gray = L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    { attribution: '© Esri' }
+  );
+
+  // =========================
+  // MAPA
+  // =========================
+  const map = L.map('map', {
+    center: [-9.2, -75],
+    zoom: 5,
+    layers: [osm]
+  });
+
+  // =========================
+  // CAMBIO DE MAPA BASE
+  // =========================
+function cambiarBase(nueva) {
+  if (map.hasLayer(osm)) map.removeLayer(osm);
+  if (map.hasLayer(imagery)) map.removeLayer(imagery);
+  if (map.hasLayer(gray)) map.removeLayer(gray);
+  nueva.addTo(map);
+}
+
+document.getElementById('osm').onchange = () => cambiarBase(osm);
+document.getElementById('imagery').onchange = () => cambiarBase(imagery);
+document.getElementById('gray').onchange = () => cambiarBase(gray);
+
+
+  // =========================
+  // CAPA ANP
+  // =========================
+  let capaANP = null;
+
+  document.getElementById('chkANP').addEventListener('change', function () {
+    if (this.checked) {
+      fetch('data/ANP.geojson')
+        .then(r => r.json())
+        .then(data => {
+          capaANP = L.geoJSON(data, {
+            style: {
+              color: '#2e7d32',
+              weight: 2,
+              fillOpacity: 0.4
+            },
+            onEachFeature: (f, l) =>
+              l.bindPopup(f.properties?.anp_nomb || 'ANP')
+          }).addTo(map);
+
+          map.fitBounds(capaANP.getBounds());
+        });
+    } else {
+      if (capaANP) {
+        map.removeLayer(capaANP);
+        capaANP = null;
+      }
+    }
+  });
+</script>
+
+</body>
+</html>
